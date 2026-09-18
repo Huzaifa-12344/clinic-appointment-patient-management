@@ -1,0 +1,15 @@
+{
+  "name": "Nowshera Clinic Automations",
+  "nodes": [
+    {"parameters":{"httpMethod":"POST","path":"clinic-email","responseMode":"onReceived"},"id":"webhook","name":"Clinic Email Webhook","type":"n8n-nodes-base.webhook","typeVersion":2,"position":[0,0]},
+    {"parameters":{"assignments":{"assignments":[{"id":"s1","name":"subject","value":"={{$json.body.event_type === 'confirmed' ? 'Appointment confirmed' : $json.body.event_type === 'reminder' ? 'Appointment reminder' : $json.body.event_type === 'doctor_invite' ? 'Doctor account invitation' : 'Appointment update'}}","type":"string"},{"id":"s2","name":"message","value":"={{'Hello ' + $json.body.name + ',\\n\\nEvent: ' + $json.body.event_type + '\\nAppointment: ' + ($json.body.start_time || '') + '\\nReason: ' + ($json.body.reason || '') + '\\nTemporary password: ' + ($json.body.temporary_password || '') + '\\n\\nNowshera Family Clinic'}}","type":"string"}]}},"id":"set","name":"Build Email","type":"n8n-nodes-base.set","typeVersion":3.4,"position":[240,0]},
+    {"parameters":{"fromEmail":"clinic@local.test","toEmail":"={{$json.body.to}}","subject":"={{$json.subject}}","text":"={{$json.message}}","options":{}},"id":"mail","name":"Send Email","type":"n8n-nodes-base.emailSend","typeVersion":2.1,"position":[500,0],"credentials":{"smtp":{"id":"MAILHOG_CREDENTIAL_ID","name":"MailHog SMTP"}}},
+    {"parameters":{"rule":{"interval":[{"field":"minutes","minutesInterval":10}]}},"id":"cron1","name":"Every 10 Minutes","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[0,220]},
+    {"parameters":{"method":"POST","url":"http://api:8000/internal/automation/expire-pending","sendHeaders":true,"headerParameters":{"parameters":[{"name":"X-Automation-Key","value":"change-me-automation-key"}]}},"id":"expire","name":"Expire Pending","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[260,220]},
+    {"parameters":{"rule":{"interval":[{"field":"hours","hoursInterval":1}]}},"id":"cron2","name":"Every Hour","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[0,420]},
+    {"parameters":{"method":"POST","url":"http://api:8000/internal/automation/reminders","sendHeaders":true,"headerParameters":{"parameters":[{"name":"X-Automation-Key","value":"change-me-automation-key"}]}},"id":"remind","name":"Send Reminders","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[260,420]}
+  ],
+  "connections":{"Clinic Email Webhook":{"main":[[{"node":"Build Email","type":"main","index":0}]]},"Build Email":{"main":[[{"node":"Send Email","type":"main","index":0}]]},"Every 10 Minutes":{"main":[[{"node":"Expire Pending","type":"main","index":0}]]},"Every Hour":{"main":[[{"node":"Send Reminders","type":"main","index":0}]]}},
+  "active": false,
+  "settings": {"executionOrder":"v1"}
+}
